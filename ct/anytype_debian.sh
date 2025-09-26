@@ -3,10 +3,10 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Copyright (c) 2021-2025
 # Author: mrnux
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/anytype_server/LICENSE
-# Source: https://github.com/dani-garcia/vaultwarden
+# Source:
 
-APP="Anytype server"
-var_tags="${var_tags:-password-manager}"
+APP="anytype_debian"
+var_tags="${var_tags:-knowledge_database}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-1}"
@@ -38,11 +38,6 @@ function update_script() {
 
   any-sync-coordinator/bin/any-sync-confapply -c /etc/anytype/any-sync-coordinator/config.yml -n /etc/anytype/any-sync-coordinator/network.yml -e
   #any-sync-filenode/bin/any-sync-filenode -c /etc/anytype/any-sync-filenode/config.yml
-
-  echo "
-127.0.0.1 any-sync-coordinator  localhost.localdomain
-127.0.0.1 any-sync-consensusnode  localhost.localdomain
-  " >> /etc/hosts
 
   # need
   # redis

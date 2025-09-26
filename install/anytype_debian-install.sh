@@ -145,6 +145,8 @@ install_any-sync-consensusnode
 install_any-sync-coordinator
 go install github.com/anyproto/any-sync-tools/any-sync-network@latest
 
+any-sync-coordinator/bin/any-sync-confapply -c /etc/anytype/any-sync-coordinator/config.yml -n /etc/anytype/any-sync-coordinator/network.yml -e
+
 mkdir -p /data/db
 
 #rc-update add mongodb default # port 27001
@@ -154,6 +156,11 @@ mkdir -p /data/db
 sed -i "s/\"\$MINIO_ROOT_USER\" = 'change-me'/\"\$MINIO_ROOT_USER\" = 'root'/g" /etc/init.d/minio
 sed -i "s/\"\$MINIO_ROOT_PASSWORD\" = 'change-me'/\"\$MINIO_ROOT_USER\" = 'my-password'/g" /etc/init.d/minio
 sed -i "s/(MINIO_ROOT_USER)=\"change-me\"/(MINIO_ROOT_USER)=\"my-password\"/g" /etc/init.d/minio
+
+echo "
+127.0.0.1 any-sync-coordinator  localhost.localdomain
+127.0.0.1 any-sync-consensusnode  localhost.localdomain
+" >> /etc/hosts
 
 # Creating Service (if needed)
 msg_info "Creating Service"
