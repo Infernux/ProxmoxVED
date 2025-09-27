@@ -14,8 +14,10 @@ setting_up_container
 network_check
 update_os
 
+alias apt-get="apt-get -y"
+
 function install_any-sync() {
-  $STD apt-get install --no-cache --upgrade make protobuf-compiler golang
+  $STD apt-get install --upgrade make protobuf-compiler golang
 
   git clone https://github.com/anyproto/any-sync
   pushd any-sync
@@ -25,7 +27,7 @@ function install_any-sync() {
 }
 
 function install_any-sync-node() {
-  $STD apt-get install --no-cache --upgrade bash make golang
+  $STD apt-get install --upgrade bash make golang
 
   git clone https://github.com/anyproto/any-sync-node
   pushd any-sync-node
@@ -37,7 +39,7 @@ function install_any-sync-node() {
 }
 
 function install_any-sync-file-node() {
-  $STD apt-get install --no-cache --upgrade bash make go
+  $STD apt-get install --upgrade bash make go
 
   git clone https://github.com/anyproto/any-sync-filenode
   pushd any-sync-filenode
@@ -49,7 +51,7 @@ function install_any-sync-file-node() {
 }
 
 function install_any-sync-consensusnode() {
-  $STD apt-get install --no-cache --upgrade bash make golang
+  $STD apt-get install --upgrade bash make golang
 
   git clone https://github.com/anyproto/any-sync-consensusnode
   pushd any-sync-consensusnode
@@ -82,7 +84,7 @@ depend() {
 }
 
 function install_any-sync-coordinator() {
-  $STD apt-get install --no-cache --upgrade bash make golang
+  $STD apt-get install --upgrade bash make golang
 
   git clone https://github.com/anyproto/any-sync-coordinator
   pushd any-sync-coordinator
@@ -116,7 +118,7 @@ depend() {
 }
 
 function install_any-sync-tools() {
-  $STD apt-get install --no-cache --upgrade bash make golang
+  $STD apt-get install --upgrade bash make golang
 
   git clone https://github.com/anyproto/any-sync-tools
   pushd any-sync-tools
@@ -136,7 +138,7 @@ function install_any-sync-tools() {
 
 # Installing Dependencies
 msg_info "Installing Dependencies"
-$STD apt-get install --no-cache --upgrade make protobuf-compiler golang
+$STD apt-get install -y --upgrade make protobuf-compiler golang git
 msg_ok "Installed Dependencies"
 
 install_any-sync-node
