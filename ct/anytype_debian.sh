@@ -9,9 +9,9 @@ APP="anytype_debian"
 var_tags="${var_tags:-knowledge_database}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
-var_disk="${var_disk:-2}"
+var_disk="${var_disk:-4}"
 var_os="${var_os:-debian}"
-var_version="${var_version:-12}"
+var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -22,7 +22,8 @@ catch_errors
 function update_script() {
   useradd anytype
 
-  $STD apt-get install --no-cache --upgrade redis minio mongodb mongodb-tools
+  $STD apt-get install redis
+  #$STD apt-get install minio mongodb mongodb-tools
 
   #install_any-sync # needed ?
 
