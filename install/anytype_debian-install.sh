@@ -16,8 +16,13 @@ update_os
 
 alias apt-get="apt-get -y"
 
+function install_latest_golang() {
+  wget https://go.dev/dl/go1.25.1.linux-amd64.tar.gz
+  ln -s /usr/local/go/bin/go /usr/bin
+}
+
 function install_any-sync() {
-  $STD apt-get install --upgrade make protobuf-compiler golang
+  $STD apt-get install --upgrade make protobuf-compiler
 
   git clone https://github.com/anyproto/any-sync
   pushd any-sync
@@ -27,7 +32,7 @@ function install_any-sync() {
 }
 
 function install_any-sync-node() {
-  $STD apt-get install --upgrade bash make golang
+  $STD apt-get install --upgrade bash make
 
   git clone https://github.com/anyproto/any-sync-node
   pushd any-sync-node
@@ -51,7 +56,7 @@ function install_any-sync-file-node() {
 }
 
 function install_any-sync-consensusnode() {
-  $STD apt-get install --upgrade bash make golang
+  $STD apt-get install --upgrade bash make
 
   git clone https://github.com/anyproto/any-sync-consensusnode
   pushd any-sync-consensusnode
@@ -84,7 +89,7 @@ depend() {
 }
 
 function install_any-sync-coordinator() {
-  $STD apt-get install --upgrade bash make golang
+  $STD apt-get install --upgrade bash make
 
   git clone https://github.com/anyproto/any-sync-coordinator
   pushd any-sync-coordinator
@@ -118,7 +123,7 @@ depend() {
 }
 
 function install_any-sync-tools() {
-  $STD apt-get install --upgrade bash make golang
+  $STD apt-get install --upgrade bash make
 
   git clone https://github.com/anyproto/any-sync-tools
   pushd any-sync-tools
@@ -138,9 +143,10 @@ function install_any-sync-tools() {
 
 # Installing Dependencies
 msg_info "Installing Dependencies"
-$STD apt-get install -y --upgrade make protobuf-compiler golang git
+$STD apt-get install -y --upgrade make protobuf-compiler git
 msg_ok "Installed Dependencies"
 
+install_latest_golang
 install_any-sync-node
 install_any-sync-file-node
 install_any-sync-consensusnode
