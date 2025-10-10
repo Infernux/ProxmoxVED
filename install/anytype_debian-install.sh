@@ -17,8 +17,11 @@ update_os
 alias apt-get="apt-get -y"
 
 function install_latest_golang() {
+  pushd ~
   wget https://go.dev/dl/go1.25.1.linux-amd64.tar.gz
+  tar -xf go1.25.1.linux-amd64.tar.gz -C /usr/local/
   ln -s /usr/local/go/bin/go /usr/bin
+  popd
 }
 
 function install_any-sync() {
