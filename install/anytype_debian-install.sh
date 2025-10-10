@@ -44,7 +44,7 @@ function install_any-sync-node() {
 }
 
 function install_any-sync-file-node() {
-  $STD apt-get install --upgrade bash make go
+  $STD apt-get install --upgrade bash make
 
   git clone https://github.com/anyproto/any-sync-filenode
   pushd any-sync-filenode
@@ -65,27 +65,6 @@ function install_any-sync-consensusnode() {
 
   cp bin/any-sync-consensusnode /usr/bin/
   popd
-
-  echo '
-#!/sbin/openrc-run
-
-name="Anytype sync consensusnode"
-
-: ${command_user:="${ANYTYPE_USER:-anytype}:${ANYTYPE_GROUP:-anytype}"}
-: ${retry:=30}
-
-command="/usr/bin/any-sync-consensusnode"
-command_args="-c /etc/anytype/any-sync-consensusnode/config.yml"
-command_background="yes"
-# this process outputs everything to stderr
-error_log="/var/log/anytype/any-sync-consensusnode.log"
-pidfile="/run/$RC_SVSCNAME.pid"
-
-depend() {
-  need net
-  after firewall
-}
-  ' > /etc/init.d/any-sync-consensusnode
 }
 
 function install_any-sync-coordinator() {
@@ -100,26 +79,6 @@ function install_any-sync-coordinator() {
   cp bin/any-sync-confapply /usr/bin/
   popd
 
-  echo '
-#!/sbin/openrc-run
-
-name="Anytype sync coordinator"
-
-: ${command_user:="${ANYTYPE_USER:-anytype}:${ANYTYPE_GROUP:-anytype}"}
-: ${retry:=30}
-
-command="/usr/bin/any-sync-coordinator"
-command_args="-c /etc/anytype/any-sync-coordinator/config.yml"
-command_background="yes"
-# this process outputs everything to stderr
-error_log="/var/log/anytype/any-sync-coordinator.log"
-pidfile="/run/$RC_SVSCNAME.pid"
-
-depend() {
-  need net
-  after firewall
-}
-  ' > /etc/init.d/any-sync-coordinator
 }
 
 function install_any-sync-tools() {
