@@ -105,7 +105,7 @@ function install_any-sync-tools() {
 
 # Installing Dependencies
 msg_info "Installing Dependencies"
-$STD apt-get install -y --upgrade make protobuf-compiler git
+$STD apt-get install -y --upgrade make protobuf-compiler git gcc
 msg_ok "Installed Dependencies"
 
 install_latest_golang
