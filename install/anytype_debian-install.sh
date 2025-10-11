@@ -3,7 +3,7 @@
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: mrnux
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: 
+# Source:
 
 # Import Functions and Setup
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -21,6 +21,65 @@ function install_latest_golang() {
   wget https://go.dev/dl/go1.25.1.linux-amd64.tar.gz
   tar -xf go1.25.1.linux-amd64.tar.gz -C /usr/local/
   ln -s /usr/local/go/bin/go /usr/bin
+  popd
+}
+
+function install_mongodb() {
+  pushd
+  $STD apt-get install --upgrade gnupg curl
+  curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | \
+   sudo gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg \
+   --dearmor
+  echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/8.0 main" | sudo tee /etc/apt/sources.list.d/mongodb-org-8.0.list
+  apt-get update
+  apt-get install -y mongodb-org
+  echo "[Unit]
+Description=MongoDB
+Documentation=
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=mongodb-user
+Group=mongodb-user
+ExecStart=mongod --replSet "replSet" --port 27017
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target" > /etc/systemd/system/mongodb.service
+  popd
+}
+
+function install_minio() {
+  pushd
+  wget https://dl.min.io/server/minio/release/linux-amd64/minio
+  apt-get update
+  chmod +x minio
+  mv minio /usr/local/bin/
+  useradd -r minio-user -s /sbin/nologin
+
+  mkdir /usr/local/share/minio
+  mkdir /etc/minio
+  chown minio-user:minio-user /usr/local/share/minio
+  chown minio-user:minio-user /etc/minio
+  echo "[Unit]
+Description=MinIO
+Documentation=https://docs.min.io
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=minio-user
+Group=minio-user
+ExecStart=/usr/local/bin/minio server /data
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target" > /etc/systemd/system/minio.service
   popd
 }
 
@@ -98,24 +157,34 @@ function install_any-sync-tools() {
   mkdir -p /etc/anytype
   cp -r etc/* /etc/anytype
 
-  #bin/any-sync-coordinator
-  #bin/any-sync-confapply
   popd
 }
 
 # Installing Dependencies
 msg_info "Installing Dependencies"
-$STD apt-get install -y --upgrade make protobuf-compiler git gcc
+$STD apt-get install -y --upgrade make protobuf-compiler git gcc redis
 msg_ok "Installed Dependencies"
 
+msg_info "Installing golang"
 install_latest_golang
+msg_ok "Installed golang"
+msg_info "Installing mongodb"
+install_mongodb
+msg_ok "Installed mongodb"
+msg_info "Installing minio"
+install_minio
+msg_ok "Installed minio"
+msg_info "Installing anytype"
+mkdir /anytype
+pushd /anytype
 install_any-sync-node
 install_any-sync-file-node
 install_any-sync-consensusnode
 install_any-sync-coordinator
-go install github.com/anyproto/any-sync-tools/any-sync-network@latest
+install_any-sync-tools
 
-any-sync-coordinator/bin/any-sync-confapply -c /etc/anytype/any-sync-coordinator/config.yml -n /etc/anytype/any-sync-coordinator/network.yml -e
+msg_ok "Installed anytype"
+popd
 
 mkdir -p /data/db
 
@@ -132,21 +201,13 @@ echo "
 127.0.0.1 any-sync-consensusnode  localhost.localdomain
 " >> /etc/hosts
 
-# Creating Service (if needed)
-msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/"${APPLICATION}".service
-[Unit]
-Description=${APPLICATION} Service
-After=network.target
+systemctl daemon-reload
+systemctl enable minio
+systemctl enable mongodb
+systemctl start minio
+systemctl start mongodb
 
-[Service]
-ExecStart=[START_COMMAND]
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-msg_ok "Created Service"
+/anytype/any-sync-coordinator/bin/any-sync-confapply -c /etc/anytype/any-sync-coordinator/config.yml -n /etc/anytype/any-sync-coordinator/network.yml -e
 
 motd_ssh
 customize
