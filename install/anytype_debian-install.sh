@@ -25,7 +25,8 @@ function install_latest_golang() {
 }
 
 function install_mongodb() {
-  pushd
+  mkdir mongodb
+  pushd mongodb
   $STD apt-get install --upgrade gnupg curl
   curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | \
    sudo gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg \
@@ -53,7 +54,8 @@ WantedBy=multi-user.target" > /etc/systemd/system/mongodb.service
 }
 
 function install_minio() {
-  pushd
+  mkdir minio
+  pushd minio
   wget https://dl.min.io/server/minio/release/linux-amd64/minio
   apt-get update
   chmod +x minio
