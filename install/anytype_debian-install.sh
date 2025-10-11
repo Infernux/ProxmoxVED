@@ -24,9 +24,24 @@ function install_latest_golang() {
   popd
 }
 
+function install_redis-bloom() {
+  pushd ~
+  $STD apt-get install git make python3 cmake build-essential
+  git clone --recurse-submodules -j8 https://github.com/RedisBloom/RedisBloom.git -b v2.8.10
+  cd RedisBloom
+  ./deps/readies/bin/getpy3
+  make
+  find -name "redisbloom.so" -exec cp {} /var/lib/redis
+  sed /etc/systemd/system/redis.service -ei "s/ExecStart.*/& --loadmodule /var/lib/redis/redisbloom.so"
+  popd
+}
+
 function install_mongodb() {
   mkdir mongodb
   pushd mongodb
+  useradd -r mongodb-user -s /sbin/nologin
+  chown -R mongodb-user:mongodb-user /data/db
+  mkdir -p /data/db
   $STD apt-get install --upgrade gnupg curl
   curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | \
    sudo gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg \
@@ -43,13 +58,15 @@ After=network-online.target
 [Service]
 User=mongodb-user
 Group=mongodb-user
-ExecStart=mongod --replSet "replSet" --port 27017
+ExecStart=mongod --replSet rs0 --port 27017
 Restart=always
 RestartSec=5
 LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target" > /etc/systemd/system/mongodb.service
+  systemctl start mongodb
+  mongosh --eval "rs.initiate()"
   popd
 }
 
@@ -66,6 +83,7 @@ function install_minio() {
   mkdir /etc/minio
   chown minio-user:minio-user /usr/local/share/minio
   chown minio-user:minio-user /etc/minio
+
   echo "[Unit]
 Description=MinIO
 Documentation=https://docs.min.io
@@ -104,6 +122,57 @@ function install_any-sync-node() {
   make build
 
   cp bin/any-sync-node /usr/bin/
+
+  echo "[Unit]
+Description=Anytype-syncnode1
+Documentation=
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=anytype
+Group=anytype
+ExecStart=any-sync-node -c /etc/anytype/any-sync-node-1/config.yml
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target" > /etc/systemd/system/anytype_node-1.service
+
+  echo "[Unit]
+Description=Anytype-syncnode2
+Documentation=
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=anytype
+Group=anytype
+ExecStart=any-sync-node -c /etc/anytype/any-sync-node-2/config.yml
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target" > /etc/systemd/system/anytype_node-2.service
+
+  echo "[Unit]
+Description=Anytype-syncnode3
+Documentation=
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=anytype
+Group=anytype
+ExecStart=any-sync-node -c /etc/anytype/any-sync-node-3/config.yml
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target" > /etc/systemd/system/anytype_node-3.service
   popd
 }
 
@@ -116,6 +185,23 @@ function install_any-sync-file-node() {
   make build
 
   cp bin/any-sync-filenode /usr/bin/
+
+  echo "[Unit]
+Description=Anytype-filenode
+Documentation=
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=anytype
+Group=anytype
+ExecStart=any-sync-filenode -c /etc/anytype/any-sync-filenode/config.yml
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target" > /etc/systemd/system/anytype_filenode.service
   popd
 }
 
@@ -128,6 +214,23 @@ function install_any-sync-consensusnode() {
   make build
 
   cp bin/any-sync-consensusnode /usr/bin/
+
+  echo "[Unit]
+Description=Anytype-consensus
+Documentation=
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=anytype
+Group=anytype
+ExecStart=any-sync-consensus -c /etc/anytype/any-sync-consensus/config.yml
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target" > /etc/systemd/system/anytype_consensus.service
   popd
 }
 
@@ -141,6 +244,23 @@ function install_any-sync-coordinator() {
 
   cp bin/any-sync-coordinator /usr/bin/
   cp bin/any-sync-confapply /usr/bin/
+
+  echo "[Unit]
+Description=Anytype-coordinator
+Documentation=
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=anytype
+Group=anytype
+ExecStart=any-sync-coordinator -c /etc/anytype/any-sync-coordinator/config.yml
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target" > /etc/systemd/system/anytype_coordinator.service
   popd
 
 }
@@ -159,6 +279,12 @@ function install_any-sync-tools() {
   mkdir -p /etc/anytype
   cp -r etc/* /etc/anytype
 
+  sed /etc/anytype/any-sync-filenode/config.yml -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8001/g"
+  sed /etc/anytype/any-sync-node-1/config.yml -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8011/g"
+  sed /etc/anytype/any-sync-node-2/config.yml -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8012/g"
+  sed /etc/anytype/any-sync-node-3/config.yml -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8013/g"
+  sed /etc/anytype/any-sync-consensusnode/config.yml -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8005/g"
+
   popd
 }
 
@@ -166,6 +292,8 @@ function install_any-sync-tools() {
 msg_info "Installing Dependencies"
 $STD apt-get install -y --upgrade make protobuf-compiler git gcc redis
 msg_ok "Installed Dependencies"
+
+useradd -r anytype -s /sbin/nologin
 
 msg_info "Installing golang"
 install_latest_golang
@@ -179,6 +307,7 @@ msg_ok "Installed minio"
 msg_info "Installing anytype"
 mkdir /anytype
 pushd /anytype
+install_redis-bloom
 install_any-sync-node
 install_any-sync-file-node
 install_any-sync-consensusnode
@@ -187,8 +316,6 @@ install_any-sync-tools
 
 msg_ok "Installed anytype"
 popd
-
-mkdir -p /data/db
 
 #rc-update add mongodb default # port 27001
 
@@ -199,8 +326,12 @@ sed -i "s/\"\$MINIO_ROOT_PASSWORD\" = 'change-me'/\"\$MINIO_ROOT_USER\" = 'my-pa
 sed -i "s/(MINIO_ROOT_USER)=\"change-me\"/(MINIO_ROOT_USER)=\"my-password\"/g" /etc/init.d/minio
 
 echo "
-127.0.0.1 any-sync-coordinator  localhost.localdomain
-127.0.0.1 any-sync-consensusnode  localhost.localdomain
+127.0.0.1 any-sync-coordinator
+127.0.0.1 any-sync-consensusnode
+127.0.0.1 any-sync-filenode
+127.0.0.1 any-sync-node-1
+127.0.0.1 any-sync-node-2
+127.0.0.1 any-sync-node-3
 " >> /etc/hosts
 
 systemctl daemon-reload
@@ -210,6 +341,19 @@ systemctl start minio
 systemctl start mongodb
 
 /anytype/any-sync-coordinator/bin/any-sync-confapply -c /etc/anytype/any-sync-coordinator/config.yml -n /etc/anytype/any-sync-coordinator/network.yml -e
+
+systemctl enable anytype_filenode
+systemctl enable anytype_coordinator
+systemctl enable anytype_node-1
+systemctl enable anytype_node-2
+systemctl enable anytype_node-3
+systemctl enable anytype_consensus
+systemctl start anytype_filenode
+systemctl start anytype_coordinator
+systemctl start anytype_node-1
+systemctl start anytype_node-2
+systemctl start anytype_node-3
+systemctl start anytype_consensus
 
 motd_ssh
 customize
