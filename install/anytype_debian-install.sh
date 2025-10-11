@@ -224,7 +224,7 @@ After=network-online.target
 [Service]
 User=anytype
 Group=anytype
-ExecStart=any-sync-consensus -c /etc/anytype/any-sync-consensus/config.yml
+ExecStart=any-sync-consensusnode -c /etc/anytype/any-sync-consensusnode/config.yml
 Restart=always
 RestartSec=5
 LimitNOFILE=65536
@@ -341,6 +341,9 @@ systemctl start minio
 systemctl start mongodb
 
 /anytype/any-sync-coordinator/bin/any-sync-confapply -c /etc/anytype/any-sync-coordinator/config.yml -n /etc/anytype/any-sync-coordinator/network.yml -e
+
+echo "net.core.rmem_max=4194304" >> /etc/sysctl.conf
+echo "net.core.wmem_max=4194304" >> /etc/sysctl.conf
 
 systemctl enable anytype_filenode
 systemctl enable anytype_coordinator
