@@ -100,7 +100,14 @@ LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target" > /etc/systemd/system/minio.service
+
+  systemctl start minio
+
   popd
+  git clone https://github.com/minio/mc.git
+  pushd mc
+  make
+  mv mc /usr/bin/minio_mc
 }
 
 function install_any-sync() {
@@ -279,12 +286,16 @@ function install_any-sync-tools() {
   mkdir -p /etc/anytype
   cp -r etc/* /etc/anytype
 
-  sed /etc/anytype/any-sync-filenode/config.yml -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8001/g"
-  sed /etc/anytype/any-sync-node-1/config.yml -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8011/g"
-  sed /etc/anytype/any-sync-node-2/config.yml -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8012/g"
-  sed /etc/anytype/any-sync-node-3/config.yml -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8013/g"
-  sed /etc/anytype/any-sync-consensusnode/config.yml -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8005/g"
+  sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8001/g" /etc/anytype/any-sync-filenode/config.yml
+  sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8011/g" /etc/anytype/any-sync-node-1/config.yml
+  sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8012/g" /etc/anytype/any-sync-node-2/config.yml
+  sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8013/g" /etc/anytype/any-sync-node-3/config.yml
+  sed -ie "s/listAddr: 0.0.0.0:.*/addr: 0.0.0.0:8081/g" /etc/anytype/any-sync-node-1/config.yml
+  sed -ie "s/listAddr: 0.0.0.0:.*/addr: 0.0.0.0:8082/g" /etc/anytype/any-sync-node-2/config.yml
+  sed -ie "s/listAddr: 0.0.0.0:.*/addr: 0.0.0.0:8083/g" /etc/anytype/any-sync-node-3/config.yml
+  sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8005/g" /etc/anytype/any-sync-consensusnode/config.yml
 
+  sed -ie "s/127.0.0.1/SET_TO_THE_EXTERNAL_IP/g" /etc/anytype/client.yml
   popd
 }
 
@@ -313,9 +324,11 @@ install_any-sync-file-node
 install_any-sync-consensusnode
 install_any-sync-coordinator
 install_any-sync-tools
-
 msg_ok "Installed anytype"
 popd
+
+minio_mc alias set minio http://127.0.0.1:9000 minioadmin minioadmin
+minio_mc mb minio/minio-bucket # TODO: rename bucket to anytype, and change configuration
 
 #rc-update add mongodb default # port 27001
 
@@ -337,13 +350,15 @@ echo "
 systemctl daemon-reload
 systemctl enable minio
 systemctl enable mongodb
+systemctl enable redis
 systemctl start minio
 systemctl start mongodb
+systemctl start redis
 
 /anytype/any-sync-coordinator/bin/any-sync-confapply -c /etc/anytype/any-sync-coordinator/config.yml -n /etc/anytype/any-sync-coordinator/network.yml -e
 
-echo "net.core.rmem_max=4194304" >> /etc/sysctl.conf
-echo "net.core.wmem_max=4194304" >> /etc/sysctl.conf
+msg_info "Consider setting net.core.rmem_max=4194304 on proxmox host"
+msg_info "Consider setting net.core.wmem_max=4194304 on proxmox host"
 
 systemctl enable anytype_filenode
 systemctl enable anytype_coordinator
