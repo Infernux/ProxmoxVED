@@ -93,7 +93,7 @@ After=network-online.target
 [Service]
 User=minio-user
 Group=minio-user
-ExecStart=/usr/local/bin/minio server /data
+ExecStart=/usr/local/bin/minio server /data --console-address :9999
 Restart=always
 RestartSec=5
 LimitNOFILE=65536
@@ -134,7 +134,7 @@ function install_any-sync-node() {
 Description=Anytype-syncnode1
 Documentation=
 Wants=network-online.target
-After=network-online.target
+After=network-online.target anytype_filenode.service
 
 [Service]
 User=anytype
@@ -151,7 +151,7 @@ WantedBy=multi-user.target" > /etc/systemd/system/anytype_node-1.service
 Description=Anytype-syncnode2
 Documentation=
 Wants=network-online.target
-After=network-online.target
+After=network-online.target anytype_filenode.service
 
 [Service]
 User=anytype
@@ -168,7 +168,7 @@ WantedBy=multi-user.target" > /etc/systemd/system/anytype_node-2.service
 Description=Anytype-syncnode3
 Documentation=
 Wants=network-online.target
-After=network-online.target
+After=network-online.target anytype_filenode.service
 
 [Service]
 User=anytype
@@ -197,7 +197,7 @@ function install_any-sync-file-node() {
 Description=Anytype-filenode
 Documentation=
 Wants=network-online.target
-After=network-online.target
+After=network-online.target anytype_coordinator.service minio.service mongodb.service redis.service
 
 [Service]
 User=anytype
@@ -226,7 +226,7 @@ function install_any-sync-consensusnode() {
 Description=Anytype-consensus
 Documentation=
 Wants=network-online.target
-After=network-online.target
+After=network-online.target anytype_node1.service anytype_node2.service anytype_node3.service
 
 [Service]
 User=anytype
@@ -327,16 +327,16 @@ install_any-sync-tools
 msg_ok "Installed anytype"
 popd
 
-minio_mc alias set minio http://127.0.0.1:9000 minioadmin minioadmin
+minio_mc alias set minio http://127.0.0.1:9000 minioadmin minioadmin # TODO: change login/password
 minio_mc mb minio/minio-bucket # TODO: rename bucket to anytype, and change configuration
 
 #rc-update add mongodb default # port 27001
 
 # MINIO port 9000
 # change ROOT_USER and PASSWORD
-sed -i "s/\"\$MINIO_ROOT_USER\" = 'change-me'/\"\$MINIO_ROOT_USER\" = 'root'/g" /etc/init.d/minio
-sed -i "s/\"\$MINIO_ROOT_PASSWORD\" = 'change-me'/\"\$MINIO_ROOT_USER\" = 'my-password'/g" /etc/init.d/minio
-sed -i "s/(MINIO_ROOT_USER)=\"change-me\"/(MINIO_ROOT_USER)=\"my-password\"/g" /etc/init.d/minio
+#sed -i "s/\"\$MINIO_ROOT_USER\" = 'change-me'/\"\$MINIO_ROOT_USER\" = 'root'/g" /etc/init.d/minio
+#sed -i "s/\"\$MINIO_ROOT_PASSWORD\" = 'change-me'/\"\$MINIO_ROOT_USER\" = 'my-password'/g" /etc/init.d/minio
+#sed -i "s/(MINIO_ROOT_USER)=\"change-me\"/(MINIO_ROOT_USER)=\"my-password\"/g" /etc/init.d/minio
 
 echo "
 127.0.0.1 any-sync-coordinator
