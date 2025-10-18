@@ -339,12 +339,24 @@ msg_ok "Installed minio"
 msg_info "Installing anytype"
 mkdir /anytype
 pushd /anytype
+msg_info "Installing redis-bloom"
 install_redis-bloom
+msg_ok "Installed redis-bloom"
+msg_info "Installing any-sync-node"
 install_any-sync-node
+msg_ok "Installed any-sync-node"
+msg_info "Installing any-sync-filenode"
 install_any-sync-file-node
+msg_ok "Installed any-sync-filenode"
+msg_info "Installing any-sync-consensusnode"
 install_any-sync-consensusnode
+msg_ok "Installed any-sync-consensusnode"
+msg_info "Installing any-sync-coordinator"
 install_any-sync-coordinator
+msg_ok "Installed any-sync-coordinator"
+msg_info "Installing any-sync-tools"
 install_any-sync-tools
+msg_ok "Installed any-sync-tools"
 msg_ok "Installed anytype"
 popd
 
