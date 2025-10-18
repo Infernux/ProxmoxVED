@@ -66,7 +66,28 @@ LimitNOFILE=65536
 [Install]
 WantedBy=multi-user.target" > /etc/systemd/system/mongodb.service
   systemctl start mongodb
-  mongosh --eval "rs.initiate()"
+
+  for counter in {0..10}
+  do
+    msg_info "Waiting for mongodb to start up..."
+    fail=0
+    echo $counter
+    mongosh --eval "rs.initiate()" || fail=1
+    if [[ $fail == 0 ]]
+    then
+      break
+    fi
+    sleep 1
+  done
+
+  if [[ $fail == 1 ]]
+  then
+    msg_error "Mongodb failed to start"
+    exit 1
+  fi
+
+  msg_ok "Initialized mongodb"
+
   popd
 }
 
