@@ -31,7 +31,7 @@ function install_redis-bloom() {
   cd RedisBloom
   ./deps/readies/bin/getpy3
   make
-  find -name "redisbloom.so" -exec cp {} /var/lib/redis
+  find -name "redisbloom.so" -exec cp {} /var/lib/redis \;
   sed /etc/systemd/system/redis.service -ei "s/ExecStart.*/& --loadmodule /var/lib/redis/redisbloom.so"
   popd
 }
