@@ -40,8 +40,8 @@ function install_mongodb() {
   mkdir mongodb
   pushd mongodb
   useradd -r mongodb-user -s /sbin/nologin
-  chown -R mongodb-user:mongodb-user /data/db
   mkdir -p /data/db
+  chown -R mongodb-user:mongodb-user /data/db
   $STD apt-get install --upgrade gnupg curl
   curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | \
    sudo gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg \
