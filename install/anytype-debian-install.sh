@@ -95,7 +95,6 @@ function install_minio() {
   mkdir minio
   pushd minio
   wget https://dl.min.io/server/minio/release/linux-amd64/minio
-  apt-get update
   chmod +x minio
   mv minio /usr/local/bin/
   useradd -r minio-user -s /sbin/nologin
