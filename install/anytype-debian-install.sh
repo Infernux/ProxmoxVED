@@ -26,13 +26,15 @@ function install_latest_golang() {
 
 function install_redis-bloom() {
   pushd ~
+  msg_info "Installing dependencies for redis-bloom"
   $STD apt-get install git make python3 cmake build-essential
+  msg_ok "Installed dependencies for redis-bloom"
   git clone --recurse-submodules -j8 https://github.com/RedisBloom/RedisBloom.git -b v2.8.10
   cd RedisBloom
-  ./deps/readies/bin/getpy3
+  ./deps/readies/bin/getpy3 # TODO: waits for something !
   make
   find -name "redisbloom.so" -exec cp {} /var/lib/redis \;
-  sed -ie "s/ExecStart.*/& --loadmodule \/var\/lib\/redis\/redisbloom.so" /etc/systemd/system/redis.service
+  sed -ie "s/ExecStart.*/& --loadmodule \/var\/lib\/redis\/redisbloom.so/" /etc/systemd/system/redis.service
   popd
 }
 
