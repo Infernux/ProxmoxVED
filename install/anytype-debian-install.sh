@@ -103,6 +103,7 @@ function install_minio() {
   mkdir /etc/minio
   chown minio-user:minio-user /usr/local/share/minio
   chown minio-user:minio-user /etc/minio
+  chown minio-user:minio-user /minio
 
   echo "[Unit]
 Description=MinIO
@@ -113,7 +114,7 @@ After=network-online.target
 [Service]
 User=minio-user
 Group=minio-user
-ExecStart=/usr/local/bin/minio server /data --console-address :9999
+ExecStart=/usr/local/bin/minio server /minio --console-address :9999
 Restart=always
 RestartSec=5
 LimitNOFILE=65536
