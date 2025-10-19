@@ -14,8 +14,6 @@ setting_up_container
 network_check
 update_os
 
-alias apt-get="apt-get -y"
-
 function install_latest_golang() {
   pushd ~
   wget https://go.dev/dl/go1.25.1.linux-amd64.tar.gz
@@ -27,7 +25,7 @@ function install_latest_golang() {
 function install_redis-bloom() {
   pushd ~
   msg_info "Installing dependencies for redis-bloom"
-  $STD apt-get install git make python3 cmake build-essential
+  $STD apt-get install -y git make python3 cmake build-essential
   msg_ok "Installed dependencies for redis-bloom"
   git clone --recurse-submodules -j8 https://github.com/RedisBloom/RedisBloom.git -b v2.8.10
   cd RedisBloom
@@ -44,7 +42,7 @@ function install_mongodb() {
   useradd -r mongodb-user -s /sbin/nologin
   mkdir -p /data/db
   chown -R mongodb-user:mongodb-user /data/db
-  $STD apt-get install --upgrade gnupg curl
+  $STD apt-get install -y --upgrade gnupg curl
   curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | \
    sudo gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg \
    --dearmor
@@ -133,7 +131,7 @@ WantedBy=multi-user.target" > /etc/systemd/system/minio.service
 }
 
 function install_any-sync() {
-  $STD apt-get install --upgrade make protobuf-compiler
+  $STD apt-get install -y --upgrade make protobuf-compiler
 
   git clone https://github.com/anyproto/any-sync
   pushd any-sync
@@ -143,7 +141,7 @@ function install_any-sync() {
 }
 
 function install_any-sync-node() {
-  $STD apt-get install --upgrade bash make
+  $STD apt-get install -y --upgrade bash make
 
   git clone https://github.com/anyproto/any-sync-node
   pushd any-sync-node
@@ -206,7 +204,7 @@ WantedBy=multi-user.target" > /etc/systemd/system/anytype_node-3.service
 }
 
 function install_any-sync-file-node() {
-  $STD apt-get install --upgrade bash make
+  $STD apt-get install -y --upgrade bash make
 
   git clone https://github.com/anyproto/any-sync-filenode
   pushd any-sync-filenode
@@ -235,7 +233,7 @@ WantedBy=multi-user.target" > /etc/systemd/system/anytype_filenode.service
 }
 
 function install_any-sync-consensusnode() {
-  $STD apt-get install --upgrade bash make
+  $STD apt-get install -y --upgrade bash make
 
   git clone https://github.com/anyproto/any-sync-consensusnode
   pushd any-sync-consensusnode
@@ -264,7 +262,7 @@ WantedBy=multi-user.target" > /etc/systemd/system/anytype_consensus.service
 }
 
 function install_any-sync-coordinator() {
-  $STD apt-get install --upgrade bash make
+  $STD apt-get install -y --upgrade bash make
 
   git clone https://github.com/anyproto/any-sync-coordinator
   pushd any-sync-coordinator
@@ -295,7 +293,7 @@ WantedBy=multi-user.target" > /etc/systemd/system/anytype_coordinator.service
 }
 
 function install_any-sync-tools() {
-  $STD apt-get install --upgrade bash make
+  $STD apt-get install -y --upgrade bash make
 
   git clone https://github.com/anyproto/any-sync-tools
   pushd any-sync-tools
@@ -361,8 +359,26 @@ msg_ok "Installed any-sync-tools"
 msg_ok "Installed anytype"
 popd
 
-minio_mc alias set minio http://127.0.0.1:9000 minioadmin minioadmin # TODO: change login/password
-minio_mc mb minio/minio-bucket # TODO: rename bucket to anytype, and change configuration
+for counter in {0..10}
+do
+  msg_info "Waiting for minio to start up..."
+  fail=0
+  echo $counter
+  minio_mc alias set minio http://127.0.0.1:9000 minioadmin minioadmin || fail=1 # TODO: change login/password
+
+  if [[ $fail == 0 ]]
+  then
+    minio_mc mb minio/minio-bucket # TODO: rename bucket to anytype, and change configuration
+    break
+  fi
+  sleep 1
+done
+
+if [[ $fail == 1 ]]
+then
+  msg_error "Minio failed to start or couldn't connect"
+  exit 1
+fi
 
 #rc-update add mongodb default # port 27001
 
