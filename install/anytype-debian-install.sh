@@ -29,10 +29,13 @@ function install_redis-bloom() {
   msg_ok "Installed dependencies for redis-bloom"
   git clone --recurse-submodules -j8 https://github.com/RedisBloom/RedisBloom.git -b v2.8.10
   cd RedisBloom
-  ./deps/readies/bin/getpy3 # TODO: waits for something !
+  ./deps/readies/bin/getpy3
   make
   find -name "redisbloom.so" -exec cp {} /var/lib/redis \;
   sed -ie "s/ExecStart.*/& --loadmodule \/var\/lib\/redis\/redisbloom.so/" /etc/systemd/system/redis.service
+  sed -ie "s/appendonly yes/appendonly no/" /etc/redis/redis.conf
+  echo "bind * -::*" >> /etc/redis/redis.conf
+  echo "loadmodule /var/lib/redis/redisbloom.so" >> /etc/redis/redis.conf
   popd
 }
 
@@ -399,30 +402,21 @@ echo "
 " >> /etc/hosts
 
 systemctl daemon-reload
-systemctl enable minio
-systemctl enable mongodb
+systemctl enable --now minio
+systemctl enable --now mongodb
 systemctl enable redis
-systemctl start minio
-systemctl start mongodb
-systemctl start redis
 
 /anytype/any-sync-coordinator/bin/any-sync-confapply -c /etc/anytype/any-sync-coordinator/config.yml -n /etc/anytype/any-sync-coordinator/network.yml -e
 
 msg_info "Consider setting net.core.rmem_max=4194304 on proxmox host"
 msg_info "Consider setting net.core.wmem_max=4194304 on proxmox host"
 
-systemctl enable anytype_filenode
-systemctl enable anytype_coordinator
-systemctl enable anytype_node-1
-systemctl enable anytype_node-2
-systemctl enable anytype_node-3
-systemctl enable anytype_consensus
-systemctl start anytype_filenode
-systemctl start anytype_coordinator
-systemctl start anytype_node-1
-systemctl start anytype_node-2
-systemctl start anytype_node-3
-systemctl start anytype_consensus
+systemctl enable --now anytype_filenode
+systemctl enable --now anytype_coordinator
+systemctl enable --now anytype_node-1
+systemctl enable --now anytype_node-2
+systemctl enable --now anytype_node-3
+systemctl enable --now anytype_consensus
 
 motd_ssh
 customize
