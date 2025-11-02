@@ -32,7 +32,6 @@ function install_redis-bloom() {
   ./deps/readies/bin/getpy3
   make
   find -name "redisbloom.so" -exec cp {} /var/lib/redis \;
-  sed -ie "s/ExecStart.*/& --loadmodule \/var\/lib\/redis\/redisbloom.so/" /etc/systemd/system/redis.service
   sed -ie "s/appendonly yes/appendonly no/" /etc/redis/redis.conf
   sed -ie "s/protected-mode yes/protected-mode no/" /etc/redis/redis.conf
   echo "bind * -::*" >> /etc/redis/redis.conf
@@ -317,9 +316,9 @@ function install_any-sync-tools() {
   sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8011/g" /etc/anytype/any-sync-node-1/config.yml
   sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8012/g" /etc/anytype/any-sync-node-2/config.yml
   sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8013/g" /etc/anytype/any-sync-node-3/config.yml
-  sed -ie "s/listAddr: 0.0.0.0:.*/addr: 0.0.0.0:8081/g" /etc/anytype/any-sync-node-1/config.yml
-  sed -ie "s/listAddr: 0.0.0.0:.*/addr: 0.0.0.0:8082/g" /etc/anytype/any-sync-node-2/config.yml
-  sed -ie "s/listAddr: 0.0.0.0:.*/addr: 0.0.0.0:8083/g" /etc/anytype/any-sync-node-3/config.yml
+  sed -ie "s/listenAddr: 0.0.0.0:.*/listenAddr: 0.0.0.0:8081/g" /etc/anytype/any-sync-node-1/config.yml
+  sed -ie "s/listenAddr: 0.0.0.0:.*/listenAddr: 0.0.0.0:8082/g" /etc/anytype/any-sync-node-2/config.yml
+  sed -ie "s/listenAddr: 0.0.0.0:.*/listenAddr: 0.0.0.0:8083/g" /etc/anytype/any-sync-node-3/config.yml
   sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8005/g" /etc/anytype/any-sync-consensusnode/config.yml
 
   sed -ie "s/127.0.0.1/SET_TO_THE_EXTERNAL_IP/g" /etc/anytype/client.yml
@@ -412,7 +411,6 @@ chown mongodb-user:mongodb-user /mongodb
 systemctl daemon-reload
 systemctl enable --now minio
 systemctl enable --now mongodb
-systemctl enable redis
 
 /anytype/any-sync-coordinator/bin/any-sync-confapply -c /etc/anytype/any-sync-coordinator/config.yml -n /etc/anytype/any-sync-coordinator/network.yml -e
 
