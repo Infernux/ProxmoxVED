@@ -402,9 +402,9 @@ echo "
 127.0.0.1 any-sync-node-3
 " >> /etc/hosts
 
-mkdir networkStore
+mkdir /networkStore
 chown anytype:anytype /networkStore
-mkdir anyStorage
+mkdir /anyStorage
 chown anytype:anytype /anyStorage
 
 chown mongodb-user:mongodb-user /mongodb
