@@ -34,6 +34,7 @@ function install_redis-bloom() {
   find -name "redisbloom.so" -exec cp {} /var/lib/redis \;
   sed -ie "s/ExecStart.*/& --loadmodule \/var\/lib\/redis\/redisbloom.so/" /etc/systemd/system/redis.service
   sed -ie "s/appendonly yes/appendonly no/" /etc/redis/redis.conf
+  sed -ie "s/protected-mode yes/protected-mode no/" /etc/redis/redis.conf
   echo "bind * -::*" >> /etc/redis/redis.conf
   echo "loadmodule /var/lib/redis/redisbloom.so" >> /etc/redis/redis.conf
   popd
@@ -117,7 +118,7 @@ After=network-online.target
 [Service]
 User=minio-user
 Group=minio-user
-ExecStart=/usr/local/bin/minio server /minio --console-address :9999
+ExecStart=/usr/local/bin/minio server /minio --console-address :9999 --address :9000
 Restart=always
 RestartSec=5
 LimitNOFILE=65536
@@ -250,7 +251,7 @@ function install_any-sync-consensusnode() {
 Description=Anytype-consensus
 Documentation=
 Wants=network-online.target
-After=network-online.target anytype_node1.service anytype_node2.service anytype_node3.service
+After=network-online.target anytype_coordinator.service anytype_node1.service anytype_node2.service anytype_node3.service
 
 [Service]
 User=anytype
@@ -293,7 +294,6 @@ LimitNOFILE=65536
 [Install]
 WantedBy=multi-user.target" > /etc/systemd/system/anytype_coordinator.service
   popd
-
 }
 
 function install_any-sync-tools() {
@@ -311,6 +311,9 @@ function install_any-sync-tools() {
   cp -r etc/* /etc/anytype
 
   sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8001/g" /etc/anytype/any-sync-filenode/config.yml
+  sed -ie "/forcePathStyle.*/a \ \ \ \ credentials:" /etc/anytype/any-sync-filenode/config.yml
+  sed -ie "/credentials.*/a \ \ \ \ \ \ \ \ accessKey: minioadmin" /etc/anytype/any-sync-filenode/config.yml
+  sed -ie "/accessKey.*/a \ \ \ \ \ \ \ \ secretKey: minioadmin" /etc/anytype/any-sync-filenode/config.yml
   sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8011/g" /etc/anytype/any-sync-node-1/config.yml
   sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8012/g" /etc/anytype/any-sync-node-2/config.yml
   sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8013/g" /etc/anytype/any-sync-node-3/config.yml
@@ -384,8 +387,6 @@ then
   exit 1
 fi
 
-#rc-update add mongodb default # port 27001
-
 # MINIO port 9000
 # change ROOT_USER and PASSWORD
 #sed -i "s/\"\$MINIO_ROOT_USER\" = 'change-me'/\"\$MINIO_ROOT_USER\" = 'root'/g" /etc/init.d/minio
@@ -401,12 +402,21 @@ echo "
 127.0.0.1 any-sync-node-3
 " >> /etc/hosts
 
+mkdir networkStore
+chown anytype:anytype /networkStore
+mkdir anyStorage
+chown anytype:anytype /anyStorage
+
+chown mongodb-user:mongodb-user /mongodb
+
 systemctl daemon-reload
 systemctl enable --now minio
 systemctl enable --now mongodb
 systemctl enable redis
 
 /anytype/any-sync-coordinator/bin/any-sync-confapply -c /etc/anytype/any-sync-coordinator/config.yml -n /etc/anytype/any-sync-coordinator/network.yml -e
+
+# TODO: properly pass minio login info to anytype-file-node
 
 msg_info "Consider setting net.core.rmem_max=4194304 on proxmox host"
 msg_info "Consider setting net.core.wmem_max=4194304 on proxmox host"
@@ -423,7 +433,6 @@ customize
 
 # Cleanup
 msg_info "Cleaning up"
-rm -f "${RELEASE}".zip
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
