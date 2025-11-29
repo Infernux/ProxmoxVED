@@ -216,7 +216,7 @@ WantedBy=multi-user.target" > /etc/systemd/system/anytype_node-3.service
 function install_any-sync-file-node() {
   $STD apt-get install -y --upgrade bash make
 
-  git clone https://github.com/anyproto/any-sync-filenode -v0.10.0
+  git clone https://github.com/anyproto/any-sync-filenode -bv0.10.0
   pushd any-sync-filenode
   make deps
   make build
