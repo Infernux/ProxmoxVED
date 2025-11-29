@@ -32,24 +32,27 @@ function install_redis-bloom() {
   ./deps/readies/bin/getpy3
   make
   find -name "redisbloom.so" -exec cp {} /var/lib/redis \;
-  sed -ie "s/appendonly yes/appendonly no/" /etc/redis/redis.conf
-  sed -ie "s/protected-mode yes/protected-mode no/" /etc/redis/redis.conf
-  echo "bind * -::*" >> /etc/redis/redis.conf
-  echo "loadmodule /var/lib/redis/redisbloom.so" >> /etc/redis/redis.conf
+  # create a config with ONLY these
+  #sed -ie "s/appendonly yes/appendonly no/" /etc/redis/redis.conf
+  #sed -ie "s/protected-mode yes/protected-mode no/" /etc/redis/redis.conf
+  #echo "bind * -::*" >> /etc/redis/redis.conf
+  #echo "loadmodule /var/lib/redis/redisbloom.so" >> /etc/redis/redis.conf
   popd
 }
 
 function install_mongodb() {
+  VERSION=7.0
+
   mkdir mongodb
   pushd mongodb
-  useradd -r mongodb-user -s /sbin/nologin
+  useradd -r mongodb -s /sbin/nologin
   mkdir -p /data/db
-  chown -R mongodb-user:mongodb-user /data/db
+  chown -R mongodb:mongodb /data/db
   $STD apt-get install -y --upgrade gnupg curl
-  curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | \
-   sudo gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg \
+  curl -fsSL https://www.mongodb.org/static/pgp/server-$VERSION.asc | \
+   sudo gpg -o /usr/share/keyrings/mongodb-server-$VERSION.gpg \
    --dearmor
-  echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/8.0 main" | sudo tee /etc/apt/sources.list.d/mongodb-org-8.0.list
+  echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-$VERSION.gpg ] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/$VERSION main" | sudo tee /etc/apt/sources.list.d/mongodb-org-$VERSION.list
   apt-get update
   apt-get install -y mongodb-org
   echo "[Unit]
@@ -59,8 +62,8 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-User=mongodb-user
-Group=mongodb-user
+User=mongodb
+Group=mongodb
 ExecStart=mongod --replSet rs0 --port 27017
 Restart=always
 RestartSec=5
@@ -70,12 +73,15 @@ LimitNOFILE=65536
 WantedBy=multi-user.target" > /etc/systemd/system/mongodb.service
   systemctl start mongodb
 
-  for counter in {0..10}
+  #TODO: check that mongodb's initiate goes well
+  #TODO: consensus db is not created OUAILLE ?
+
+  for counter in {0..30}
   do
     msg_info "Waiting for mongodb to start up..."
     fail=0
     echo $counter
-    mongosh --eval "rs.initiate()" || fail=1
+    mongosh --eval "rs.initiate()" || fail=1 #TODO: apparently not going well
     if [[ $fail == 0 ]]
     then
       break
@@ -147,7 +153,7 @@ function install_any-sync() {
 function install_any-sync-node() {
   $STD apt-get install -y --upgrade bash make
 
-  git clone https://github.com/anyproto/any-sync-node
+  git clone https://github.com/anyproto/any-sync-node -bv0.10.1
   pushd any-sync-node
   make deps
   make build
@@ -210,7 +216,7 @@ WantedBy=multi-user.target" > /etc/systemd/system/anytype_node-3.service
 function install_any-sync-file-node() {
   $STD apt-get install -y --upgrade bash make
 
-  git clone https://github.com/anyproto/any-sync-filenode
+  git clone https://github.com/anyproto/any-sync-filenode -v0.10.0
   pushd any-sync-filenode
   make deps
   make build
@@ -239,7 +245,7 @@ WantedBy=multi-user.target" > /etc/systemd/system/anytype_filenode.service
 function install_any-sync-consensusnode() {
   $STD apt-get install -y --upgrade bash make
 
-  git clone https://github.com/anyproto/any-sync-consensusnode
+  git clone https://github.com/anyproto/any-sync-consensusnode -b v0.5.0
   pushd any-sync-consensusnode
   make deps
   make build
@@ -268,7 +274,7 @@ WantedBy=multi-user.target" > /etc/systemd/system/anytype_consensus.service
 function install_any-sync-coordinator() {
   $STD apt-get install -y --upgrade bash make
 
-  git clone https://github.com/anyproto/any-sync-coordinator
+  git clone https://github.com/anyproto/any-sync-coordinator -bv0.8.0
   pushd any-sync-coordinator
   make deps
   make build
@@ -314,11 +320,11 @@ function install_any-sync-tools() {
   sed -ie "/credentials.*/a \ \ \ \ \ \ \ \ accessKey: minioadmin" /etc/anytype/any-sync-filenode/config.yml
   sed -ie "/accessKey.*/a \ \ \ \ \ \ \ \ secretKey: minioadmin" /etc/anytype/any-sync-filenode/config.yml
   sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8011/g" /etc/anytype/any-sync-node-1/config.yml
-  sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8012/g" /etc/anytype/any-sync-node-2/config.yml
-  sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8013/g" /etc/anytype/any-sync-node-3/config.yml
+  #sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8012/g" /etc/anytype/any-sync-node-2/config.yml
+  #sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8013/g" /etc/anytype/any-sync-node-3/config.yml
   sed -ie "s/listenAddr: 0.0.0.0:.*/listenAddr: 0.0.0.0:8081/g" /etc/anytype/any-sync-node-1/config.yml
-  sed -ie "s/listenAddr: 0.0.0.0:.*/listenAddr: 0.0.0.0:8082/g" /etc/anytype/any-sync-node-2/config.yml
-  sed -ie "s/listenAddr: 0.0.0.0:.*/listenAddr: 0.0.0.0:8083/g" /etc/anytype/any-sync-node-3/config.yml
+  #sed -ie "s/listenAddr: 0.0.0.0:.*/listenAddr: 0.0.0.0:8082/g" /etc/anytype/any-sync-node-2/config.yml
+  #sed -ie "s/listenAddr: 0.0.0.0:.*/listenAddr: 0.0.0.0:8083/g" /etc/anytype/any-sync-node-3/config.yml
   sed -ie "s/addr: 0.0.0.0:.*/addr: 0.0.0.0:8005/g" /etc/anytype/any-sync-consensusnode/config.yml
 
   sed -ie "s/127.0.0.1/SET_TO_THE_EXTERNAL_IP/g" /etc/anytype/client.yml
@@ -406,7 +412,7 @@ chown anytype:anytype /networkStore
 mkdir /anyStorage
 chown anytype:anytype /anyStorage
 
-chown mongodb-user:mongodb-user /mongodb
+#chown mongodb:mongodb /mongodb
 
 systemctl daemon-reload
 systemctl enable --now minio
@@ -422,8 +428,8 @@ msg_info "Consider setting net.core.wmem_max=4194304 on proxmox host"
 systemctl enable --now anytype_filenode
 systemctl enable --now anytype_coordinator
 systemctl enable --now anytype_node-1
-systemctl enable --now anytype_node-2
-systemctl enable --now anytype_node-3
+#systemctl enable --now anytype_node-2
+#systemctl enable --now anytype_node-3
 systemctl enable --now anytype_consensus
 
 motd_ssh
